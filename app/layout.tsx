@@ -15,8 +15,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        {children}
+      <body className="flex min-h-screen flex-col">
+        <div className="flex-1">{children}</div>
+        <footer className="border-t border-gray-200/60 bg-white/40 py-3 text-center text-sm text-gray-600">
+          © 2026 Meet Nagadia™
+        </footer>
         <Toaster richColors position="top-center" />
       </body>
     </html>
