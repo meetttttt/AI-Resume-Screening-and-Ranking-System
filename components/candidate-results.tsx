@@ -4,8 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Button } from "@/components/ui/button"
-import { Download, User, Search, BarChart3, ArrowUpDown, Award, Sparkles } from "lucide-react"
+import { User, Search, Award, Sparkles } from "lucide-react"
 import type { Candidate, JobRequirements } from "@/lib/types"
 import { CandidateDetail } from "@/components/candidate-detail"
 import { motion, AnimatePresence } from "framer-motion"
@@ -16,14 +15,8 @@ interface CandidateResultsProps {
 }
 
 export function CandidateResults({ candidates, jobRequirements }: CandidateResultsProps) {
-  const [sortBy, setSortBy] = useState<"score" | "experience" | "education">("score")
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
-
-  const toggleSortOrder = () => {
-    setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-  }
 
   const sortedCandidates = [...candidates]
     .filter(
@@ -31,28 +24,7 @@ export function CandidateResults({ candidates, jobRequirements }: CandidateResul
         candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         candidate.matchedSkills.some((skill) => skill.toLowerCase().includes(searchTerm.toLowerCase())),
     )
-    .sort((a, b) => {
-      let comparison = 0
-
-      if (sortBy === "score") {
-        comparison = a.matchScore - b.matchScore
-      } else if (sortBy === "experience") {
-        comparison = a.yearsOfExperience - b.yearsOfExperience
-      } else if (sortBy === "education") {
-        const educationRank = {
-          "High School": 1,
-          "Associate's": 2,
-          "Bachelor's": 3,
-          "Master's": 4,
-          PhD: 5,
-        }
-        comparison =
-          (educationRank[a.educationLevel as keyof typeof educationRank] || 0) -
-          (educationRank[b.educationLevel as keyof typeof educationRank] || 0)
-      }
-
-      return sortOrder === "asc" ? comparison : -comparison
-    })
+    .sort((a, b) => b.matchScore - a.matchScore)
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -60,24 +32,14 @@ export function CandidateResults({ candidates, jobRequirements }: CandidateResul
         <Card className="bg-white/90 backdrop-blur-sm border-none shadow-xl overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-500 via-indigo-500 to-purple-500"></div>
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-pink-500" />
-                  Candidate Rankings
-                </CardTitle>
-                <CardDescription>
-                  {sortedCandidates.length} candidates analyzed for {jobRequirements.jobTitle}
-                </CardDescription>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
+            <div>
+              <CardTitle className="text-2xl font-bold flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-pink-500" />
+                Candidate Rankings
+              </CardTitle>
+              <CardDescription>
+                {sortedCandidates.length} candidates analyzed for {jobRequirements.jobTitle}
+              </CardDescription>
             </div>
 
             <div className="relative mt-4">
@@ -89,72 +51,6 @@ export function CandidateResults({ candidates, jobRequirements }: CandidateResul
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-            </div>
-
-            <div className="flex gap-2 mt-4 flex-wrap">
-              <Button
-                variant={sortBy === "score" ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  if (sortBy === "score") {
-                    toggleSortOrder()
-                  } else {
-                    setSortBy("score")
-                    setSortOrder("desc")
-                  }
-                }}
-                className={`flex items-center gap-1 ${
-                  sortBy === "score"
-                    ? "bg-gradient-to-r from-pink-500 to-indigo-500 hover:from-pink-600 hover:to-indigo-600"
-                    : "border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                }`}
-              >
-                <BarChart3 className="h-4 w-4" />
-                Match Score
-                {sortBy === "score" && <ArrowUpDown className="h-3 w-3 ml-1" />}
-              </Button>
-
-              <Button
-                variant={sortBy === "experience" ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  if (sortBy === "experience") {
-                    toggleSortOrder()
-                  } else {
-                    setSortBy("experience")
-                    setSortOrder("desc")
-                  }
-                }}
-                className={`flex items-center gap-1 ${
-                  sortBy === "experience"
-                    ? "bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600"
-                    : "border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                }`}
-              >
-                Experience
-                {sortBy === "experience" && <ArrowUpDown className="h-3 w-3 ml-1" />}
-              </Button>
-
-              <Button
-                variant={sortBy === "education" ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  if (sortBy === "education") {
-                    toggleSortOrder()
-                  } else {
-                    setSortBy("education")
-                    setSortOrder("desc")
-                  }
-                }}
-                className={`flex items-center gap-1 ${
-                  sortBy === "education"
-                    ? "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                    : "border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                }`}
-              >
-                Education
-                {sortBy === "education" && <ArrowUpDown className="h-3 w-3 ml-1" />}
-              </Button>
             </div>
           </CardHeader>
           <CardContent>
