@@ -6,6 +6,7 @@ import { JobRequirementsForm } from "@/components/job-requirements-form"
 import { ResumeUploader } from "@/components/resume-uploader"
 import { CandidateResults } from "@/components/candidate-results"
 import { analyzeResumes } from "@/lib/resume-analyzer"
+import { saveCandidatesToSupabase } from "@/lib/save-candidates"
 import type { JobRequirements, Candidate } from "@/lib/types"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
@@ -29,6 +30,25 @@ export function ResumeScreeningDashboard() {
     try {
       const { candidates: results, fileErrors } = await analyzeResumes(files, jobRequirements)
       setCandidates(results)
+      if (results.length > 0) {
+        try {
+          const saved = await saveCandidatesToSupabase(jobRequirements, results)
+          if (saved.ok) {
+            toast.success("Saved to database", {
+              description: `${results.length} candidate row${results.length === 1 ? "" : "s"} in candidate_results.`,
+            })
+          } else {
+            toast.message("Not saved to database", {
+              description:
+                "Add SUPABASE_SECRET_KEY (Secret API key, sb_secret_…) or legacy SUPABASE_SERVICE_ROLE_KEY (JWT) in .env.local — not the publishable key.",
+            })
+          }
+        } catch (persistErr) {
+          const persistMessage = persistErr instanceof Error ? persistErr.message : String(persistErr)
+          console.error("Failed to save candidates to Supabase:", persistErr)
+          toast.warning("Could not save results to the database", { description: persistMessage })
+        }
+      }
       if (results.length === 0) {
         toast.message("No candidates returned", {
           description: "Upload produced no scored profiles. Check files and try again.",

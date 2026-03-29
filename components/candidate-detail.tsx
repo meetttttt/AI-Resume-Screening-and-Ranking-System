@@ -5,6 +5,11 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Download, Mail, Phone, MapPin, Briefcase, GraduationCap, CheckCircle, XCircle, Star } from "lucide-react"
+import {
+  getEducationMatch,
+  getExperienceMatch,
+  getMissingSkills,
+} from "@/lib/match-derived"
 import type { Candidate, JobRequirements } from "@/lib/types"
 
 interface CandidateDetailProps {
@@ -13,21 +18,9 @@ interface CandidateDetailProps {
 }
 
 export function CandidateDetail({ candidate, jobRequirements }: CandidateDetailProps) {
-  const missingSkills = jobRequirements.requiredSkills.filter((skill) => !candidate.matchedSkills.includes(skill))
-
-  const experienceMatch = candidate.yearsOfExperience >= jobRequirements.minimumExperience
-
-  const educationRank = {
-    "High School": 1,
-    "Associate's": 2,
-    "Bachelor's": 3,
-    "Master's": 4,
-    PhD: 5,
-  }
-
-  const requiredEducationRank = educationRank[jobRequirements.educationLevel as keyof typeof educationRank] || 0
-  const candidateEducationRank = educationRank[candidate.educationLevel as keyof typeof educationRank] || 0
-  const educationMatch = candidateEducationRank >= requiredEducationRank
+  const missingSkills = getMissingSkills(candidate, jobRequirements)
+  const experienceMatch = getExperienceMatch(candidate, jobRequirements)
+  const educationMatch = getEducationMatch(candidate, jobRequirements)
 
   return (
     <Card className="bg-white/90 backdrop-blur-sm border-none shadow-xl overflow-hidden">
