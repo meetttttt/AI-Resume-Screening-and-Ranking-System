@@ -25,5 +25,14 @@ alter table public.candidate_results enable row level security;
 alter table public.candidate_results
   add column if not exists ui_snapshot jsonb not null default '{}';
 
--- For search + pagination in the "Screened candidates" tab, also run:
--- supabase/migrations/20250329120000_list_saved_candidates_rpc.sql
+alter table public.candidate_results
+  add column if not exists user_id uuid references auth.users (id) on delete cascade;
+
+alter table public.candidate_results
+  add column if not exists screened_by_user_id uuid references auth.users (id) on delete set null;
+
+alter table public.candidate_results
+  add column if not exists screened_by_email text;
+
+-- For RLS, shared access, list RPC, and policies, run SQL migrations in
+-- supabase/migrations/ in chronological order (or use Supabase CLI db push).

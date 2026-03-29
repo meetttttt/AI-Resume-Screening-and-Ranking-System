@@ -31,6 +31,12 @@ import { listSavedCandidates, type SavedCandidateListRow } from "@/lib/list-save
 const PAGE_SIZE = 25
 const SEARCH_DEBOUNCE_MS = 350
 
+function screenerLabel(row: SavedCandidateListRow): string {
+  if (row.screenedByEmail) return row.screenedByEmail
+  if (row.screenedByUserId) return `User ${row.screenedByUserId.slice(0, 8)}…`
+  return "Unknown"
+}
+
 interface ScreenedCandidatesTabProps {
   isActive: boolean
 }
@@ -65,6 +71,10 @@ export function ScreenedCandidatesTab({ isActive }: ScreenedCandidatesTabProps) 
       if (!res.ok) {
         if (res.reason === "not_configured") {
           setNotConfigured(true)
+          setRows([])
+          setTotal(0)
+        } else if (res.reason === "not_signed_in") {
+          setErrorMessage("Your session expired. Refresh the page or sign in again.")
           setRows([])
           setTotal(0)
         } else {
@@ -105,8 +115,8 @@ export function ScreenedCandidatesTab({ isActive }: ScreenedCandidatesTabProps) 
                 Screened candidates
               </CardTitle>
               <CardDescription>
-                All screening runs saved to your database, newest first. Search runs on the server with pagination so
-                large histories stay fast.
+                Every signed-in teammate sees the same history. Each row shows who ran that screening. Search and
+                pagination run on the server.
               </CardDescription>
             </div>
           </div>
@@ -115,7 +125,7 @@ export function ScreenedCandidatesTab({ isActive }: ScreenedCandidatesTabProps) 
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-400" />
             <Input
               type="search"
-              placeholder="Search by name, email, title, or job…"
+              placeholder="Search by candidate, job, or screener email…"
               className="h-11 pl-10 rounded-full border-indigo-100 bg-white"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -143,8 +153,7 @@ export function ScreenedCandidatesTab({ isActive }: ScreenedCandidatesTabProps) 
             <p className="text-sm text-muted-foreground rounded-lg border border-dashed p-4 bg-muted/30">
               Supabase is not configured. Add{" "}
               <code className="text-xs">NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-              <code className="text-xs">SUPABASE_SECRET_KEY</code> (or legacy{" "}
-              <code className="text-xs">SUPABASE_SERVICE_ROLE_KEY</code>) in{" "}
+              <code className="text-xs">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> (or publishable key) in{" "}
               <code className="text-xs">.env.local</code> to load saved candidates.
             </p>
           )}
@@ -190,6 +199,7 @@ export function ScreenedCandidatesTab({ isActive }: ScreenedCandidatesTabProps) 
                   <TableHeader>
                     <TableRow className="bg-indigo-50/50 hover:bg-indigo-50/50">
                       <TableHead className="whitespace-nowrap">Screened</TableHead>
+                      <TableHead className="min-w-[120px] max-w-[200px]">Screener</TableHead>
                       <TableHead>Candidate</TableHead>
                       <TableHead className="hidden md:table-cell">Job</TableHead>
                       <TableHead className="text-right whitespace-nowrap">Match</TableHead>
@@ -203,6 +213,11 @@ export function ScreenedCandidatesTab({ isActive }: ScreenedCandidatesTabProps) 
                           {format(new Date(r.createdAt), "MMM d, yyyy")}
                           <span className="hidden sm:inline text-xs block text-muted-foreground/80">
                             {format(new Date(r.createdAt), "h:mm a")}
+                          </span>
+                        </TableCell>
+                        <TableCell className="align-top max-w-[200px]">
+                          <span className="text-sm truncate block" title={screenerLabel(r)}>
+                            {screenerLabel(r)}
                           </span>
                         </TableCell>
                         <TableCell className="align-top">
@@ -288,7 +303,7 @@ export function ScreenedCandidatesTab({ isActive }: ScreenedCandidatesTabProps) 
             <SheetTitle>Candidate detail</SheetTitle>
             <SheetDescription>
               {detail
-                ? `${detail.candidate.name} · screened ${format(new Date(detail.createdAt), "MMM d, yyyy")}`
+                ? `${detail.candidate.name} · ${format(new Date(detail.createdAt), "MMM d, yyyy")} · by ${screenerLabel(detail)}`
                 : ""}
             </SheetDescription>
           </SheetHeader>
