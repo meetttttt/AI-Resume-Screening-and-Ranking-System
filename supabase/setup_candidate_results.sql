@@ -24,3 +24,6 @@ alter table public.candidate_results enable row level security;
 
 alter table public.candidate_results
   add column if not exists ui_snapshot jsonb not null default '{}';
+
+-- For search + pagination in the "Screened candidates" tab, also run:
+-- supabase/migrations/20250329120000_list_saved_candidates_rpc.sql

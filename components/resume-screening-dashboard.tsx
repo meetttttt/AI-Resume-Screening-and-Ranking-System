@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { JobRequirementsForm } from "@/components/job-requirements-form"
 import { ResumeUploader } from "@/components/resume-uploader"
 import { CandidateResults } from "@/components/candidate-results"
+import { ScreenedCandidatesTab } from "@/components/screened-candidates-tab"
 import { analyzeResumes } from "@/lib/resume-analyzer"
 import { saveCandidatesToSupabase } from "@/lib/save-candidates"
 import type { JobRequirements, Candidate } from "@/lib/types"
@@ -81,7 +82,7 @@ export function ResumeScreeningDashboard() {
       className="w-full"
     >
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8 p-1 bg-white bg-opacity-70 backdrop-blur-sm rounded-xl shadow-md">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1 mb-8 p-1 bg-white bg-opacity-70 backdrop-blur-sm rounded-xl shadow-md">
           <TabsTrigger
             value="requirements"
             className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg transition-all duration-200"
@@ -102,6 +103,12 @@ export function ResumeScreeningDashboard() {
           >
             Results
           </TabsTrigger>
+          <TabsTrigger
+            value="screened"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg transition-all duration-200"
+          >
+            Screened
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="requirements">
@@ -114,6 +121,10 @@ export function ResumeScreeningDashboard() {
 
         <TabsContent value="results">
           <CandidateResults candidates={candidates} jobRequirements={jobRequirements!} />
+        </TabsContent>
+
+        <TabsContent value="screened">
+          <ScreenedCandidatesTab isActive={activeTab === "screened"} />
         </TabsContent>
       </Tabs>
     </motion.div>
