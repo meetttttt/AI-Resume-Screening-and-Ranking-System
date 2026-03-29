@@ -1,14 +1,19 @@
 "use server"
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js"
-
+import { createClient } from "@/lib/supabase/server"
+import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env"
 import type { ResultsUiSnapshot } from "@/lib/match-derived"
 import type { Candidate, JobRequirements } from "@/lib/types"
+import type { SupabaseClient } from "@supabase/supabase-js"
 
 export type SavedCandidateListRow = {
   id: string
   screeningRunId: string
   createdAt: string
+  /** Auth user who saved this screening run (same as user_id on insert). */
+  screenedByUserId: string | null
+  /** Email at save time for display (no join to auth.users). */
+  screenedByEmail: string | null
   jobRequirements: JobRequirements
   candidate: Candidate
   uiSnapshot: ResultsUiSnapshot
@@ -25,6 +30,7 @@ export type ListSavedCandidatesResult =
       rpcAvailable: boolean
     }
   | { ok: false; reason: "not_configured" }
+  | { ok: false; reason: "not_signed_in" }
   | { ok: false; reason: "error"; message: string }
 
 type RpcPayload = { total: number; rows: RpcRow[] }
@@ -40,17 +46,8 @@ type RpcRow = {
   education_level: string
   candidate: Candidate
   ui_snapshot: ResultsUiSnapshot | Record<string, never>
-}
-
-function getServiceSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
-  const serviceKey =
-    process.env.SUPABASE_SECRET_KEY?.trim() ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
-  if (!url || !serviceKey) return null
-  return createClient(url, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
+  screened_by_user_id?: string | null
+  screened_by_email?: string | null
 }
 
 function mapRow(r: RpcRow): SavedCandidateListRow {
@@ -58,6 +55,8 @@ function mapRow(r: RpcRow): SavedCandidateListRow {
     id: r.id,
     screeningRunId: r.screening_run_id,
     createdAt: r.created_at,
+    screenedByUserId: r.screened_by_user_id ?? null,
+    screenedByEmail: r.screened_by_email ?? null,
     jobRequirements: {
       jobTitle: r.job_title,
       jobDescription: r.job_description,
@@ -100,7 +99,7 @@ async function listViaTableFallback(
   let query = supabase
     .from("candidate_results")
     .select(
-      "id, screening_run_id, created_at, job_title, job_description, required_skills, minimum_experience, education_level, candidate, ui_snapshot",
+      "id, screening_run_id, created_at, screened_by_user_id, screened_by_email, job_title, job_description, required_skills, minimum_experience, education_level, candidate, ui_snapshot",
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
@@ -111,7 +110,7 @@ async function listViaTableFallback(
     if (safe.length > 0) {
       const p = `%${safe}%`
       query = query.or(
-        `candidate->>name.ilike.${p},candidate->>email.ilike.${p},candidate->>currentTitle.ilike.${p},job_title.ilike.${p}`,
+        `candidate->>name.ilike.${p},candidate->>email.ilike.${p},candidate->>currentTitle.ilike.${p},job_title.ilike.${p},screened_by_email.ilike.${p}`,
       )
     }
   }
@@ -141,9 +140,18 @@ export async function listSavedCandidates(
   pageSize: number = 25,
   search: string = "",
 ): Promise<ListSavedCandidatesResult> {
-  const supabase = getServiceSupabase()
-  if (!supabase) {
+  const url = getSupabaseUrl()
+  const anonKey = getSupabaseAnonKey()
+  if (!url || !anonKey) {
     return { ok: false, reason: "not_configured" }
+  }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { ok: false, reason: "not_signed_in" }
   }
 
   const safePage = Math.max(1, Math.floor(page))

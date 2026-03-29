@@ -38,10 +38,12 @@ export function ResumeScreeningDashboard() {
             toast.success("Saved to database", {
               description: `${results.length} candidate row${results.length === 1 ? "" : "s"} in candidate_results.`,
             })
+          } else if (saved.reason === "not_signed_in") {
+            toast.message("Not saved", { description: "Your session expired. Sign in again and retry." })
           } else {
             toast.message("Not saved to database", {
               description:
-                "Add SUPABASE_SECRET_KEY (Secret API key, sb_secret_…) or legacy SUPABASE_SERVICE_ROLE_KEY (JWT) in .env.local — not the publishable key.",
+                "Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (or publishable key) in .env.local.",
             })
           }
         } catch (persistErr) {
